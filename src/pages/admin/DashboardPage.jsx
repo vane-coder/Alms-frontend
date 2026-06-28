@@ -110,7 +110,18 @@ export default function AdminDashboardPage() {
         <p className="page-sub">System overview — KNUST Library</p>
       </header>
 
-      <AlertBanner message="12 books are currently overdue. Review the Borrow Records for details." />
+      <AlertBanner
+        message="12 books are currently overdue. Review the Borrow Records for details."
+        action={
+          <Link
+            to="/admin/borrow-records"
+            className="btn btn--ghost"
+            style={{ color: "#fff", borderColor: "rgba(255,255,255,.35)" }}
+          >
+            View records
+          </Link>
+        }
+      />
 
       <section className="grid-stats">
         {STATS.map((stat) => (

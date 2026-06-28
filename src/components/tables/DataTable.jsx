@@ -16,7 +16,7 @@
 //   />
 export default function DataTable({
   columns = [], rows = [], loading = false, error = null,
-  emptyMessage = "Nothing to show yet.", rowKey = "id",
+  emptyMessage = "Nothing to show yet.", rowKey = "id", onRowClick,
 }) {
   if (loading) {
     return <div className="state"><div className="state__spinner" />Loading…</div>;
@@ -38,9 +38,26 @@ export default function DataTable({
             </tr>
           ) : (
             rows.map((row, i) => (
-              <tr key={row[rowKey] ?? i}>
+              <tr
+                key={row[rowKey] ?? i}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                style={onRowClick ? { cursor: "pointer" } : undefined}
+              >
                 {columns.map((c) => (
-                  <td key={c.key}>{c.render ? c.render(row) : row[c.key]}</td>
+                  <td
+                    key={c.key}
+                    onClick={
+                      onRowClick
+                        ? (e) => {
+                            if (e.target.closest("button, a, input, select, label")) {
+                              e.stopPropagation();
+                            }
+                          }
+                        : undefined
+                    }
+                  >
+                    {c.render ? c.render(row) : row[c.key]}
+                  </td>
                 ))}
               </tr>
             ))

@@ -1,5 +1,5 @@
 // SCREEN 8 — Reports & Analytics: report generator, KPI cards, charts, detailed table, export.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Calendar,
@@ -15,12 +15,18 @@ import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
 import Card from "../../components/ui/Card.jsx";
+import Select from "../../components/ui/Select.jsx";
 import Tabs from "../../components/ui/Tabs.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import StatCard from "../../components/stats/StatCard.jsx";
+import { downloadCsv, printReport, rowsToTableHtml } from "../../utils/export.js";
 import "../../styles/globals.css";
 
 const MONO = { fontFamily: "monospace", fontSize: 13 };
+
+const REPORT_PERIODS = ["June 2025", "May 2025", "April 2025", "March 2025"];
+
+const CATEGORY_OPTIONS = ["All Categories", "Engineering", "Computer Science", "Business"];
 
 const STATS = [
   {
@@ -288,9 +294,66 @@ const BOOK_COLUMNS = [
   },
 ];
 
+function getTabExport(activeTab, rows) {
+  if (activeTab === "borrowing") {
+    return {
+      title: "Monthly Borrowing Trends",
+      filename: "borrowing-trends.csv",
+      headers: ["Month", "Total Borrows", "Returned", "Overdue", "Return Rate"],
+      data: rows.map((row) => [
+        row.month,
+        row.total,
+        row.returned,
+        row.overdue,
+        `${row.returnRate}%`,
+      ]),
+    };
+  }
+
+  if (activeTab === "activity") {
+    return {
+      title: "User Activity Breakdown",
+      filename: "user-activity.csv",
+      headers: ["User", "Email", "Role", "Total Borrows", "Returned", "Overdue", "Compliance"],
+      data: rows.map((row) => [
+        row.name,
+        row.email,
+        row.role,
+        row.total,
+        row.returned,
+        row.overdue,
+        `${row.compliance}%`,
+      ]),
+    };
+  }
+
+  return {
+    title: "Most Borrowed Books",
+    filename: "book-popularity.csv",
+    headers: ["Rank", "Book Title", "Category", "Total Borrows", "Copies Available"],
+    data: rows.map((row) => [
+      row.rank,
+      row.title,
+      row.category,
+      row.borrows,
+      row.outOfStock ? "0 (Out of Stock)" : row.copies,
+    ]),
+  };
+}
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("borrowing");
+  const [reportPeriod, setReportPeriod] = useState("June 2025");
   const [userSearch, setUserSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  const filteredTrends = useMemo(
+    () => BORROWING_TRENDS.filter((row) => row.month === reportPeriod),
+    [reportPeriod],
+  );
 
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLowerCase();
@@ -302,6 +365,105 @@ export default function ReportsPage() {
     );
   }, [userSearch]);
 
+  const filteredBooks = useMemo(() => {
+    if (categoryFilter === "All Categories") return BOOK_POPULARITY;
+    return BOOK_POPULARITY.filter((book) => book.category === categoryFilter);
+  }, [categoryFilter]);
+
+  const activeRows =
+    activeTab === "borrowing"
+      ? filteredTrends
+      : activeTab === "activity"
+        ? filteredUsers
+        : filteredBooks;
+
+  const outOfStockCount = filteredBooks.filter((book) => book.outOfStock).length;
+  const topCategory =
+    filteredBooks.length > 0
+      ? filteredBooks.reduce((best, book) => (book.borrows > best.borrows ? book : best)).category
+      : "—";
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setFilterOpen(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleExportCsv = () => {
+    const { filename, headers, data } = getTabExport(activeTab, activeRows);
+    downloadCsv(filename, headers, data);
+    setMenuOpen(false);
+  };
+
+  const handleExportPdf = () => {
+    const { title, headers, data } = getTabExport(activeTab, activeRows);
+    printReport(`${title} — ${reportPeriod}`, rowsToTableHtml(headers, data));
+  };
+
+  const clearBookFilter = () => {
+    setCategoryFilter("All Categories");
+    setFilterOpen(false);
+  };
+
+  const exportMenu = (
+    <div ref={menuRef} style={{ position: "relative" }}>
+      <button
+        type="button"
+        className="btn btn--ghost btn--sm"
+        aria-label="More options"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <MoreVertical size={18} />
+      </button>
+      {menuOpen && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "100%",
+            marginTop: 4,
+            minWidth: 160,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            boxShadow: "var(--shadow)",
+            zIndex: 10,
+            overflow: "hidden",
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm btn--block"
+            style={{ justifyContent: "flex-start", borderRadius: 0 }}
+            onClick={handleExportCsv}
+            disabled={activeRows.length === 0}
+          >
+            Export as CSV
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm btn--block"
+            style={{ justifyContent: "flex-start", borderRadius: 0 }}
+            onClick={handleExportPdf}
+            disabled={activeRows.length === 0}
+          >
+            Print / Save PDF
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="stack">
       <header className="row row--between" style={{ flexWrap: "wrap", gap: 16 }}>
@@ -312,20 +474,30 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="row" style={{ flexWrap: "wrap" }}>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportCsv} disabled={activeRows.length === 0}>
+            <Download size={18} />
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf} disabled={activeRows.length === 0}>
             <Download size={18} />
             Export PDF
           </Button>
-          <Button variant="outline">
-            <Calendar size={18} />
-            June 2025
-          </Button>
+          <div className="row" style={{ gap: 8 }}>
+            <Calendar size={18} style={{ color: "var(--muted)" }} aria-hidden />
+            <Select
+              aria-label="Report period"
+              options={REPORT_PERIODS}
+              value={reportPeriod}
+              onChange={(e) => setReportPeriod(e.target.value)}
+              style={{ width: 150 }}
+            />
+          </div>
         </div>
       </header>
 
       <AlertBanner
         tone="info"
-        message="All reports reflect library data up to June 2025. Live data will sync when the backend is connected."
+        message={`All reports reflect library data up to ${reportPeriod}. Live data will sync when the backend is connected.`}
       />
 
       <section className="grid-stats">
@@ -359,21 +531,13 @@ export default function ReportsPage() {
         {activeTab === "borrowing" && (
           <Card
             title="Monthly Borrowing Trends"
-            action={
-              <button
-                type="button"
-                className="btn btn--ghost btn--sm"
-                aria-label="More options"
-              >
-                <MoreVertical size={18} />
-              </button>
-            }
+            action={exportMenu}
           >
             <DataTable
               columns={BORROWING_COLUMNS}
-              rows={BORROWING_TRENDS}
+              rows={filteredTrends}
               rowKey="id"
-              emptyMessage="No borrowing trend data available."
+              emptyMessage={`No borrowing data for ${reportPeriod}.`}
             />
             <p
               style={{
@@ -383,7 +547,9 @@ export default function ReportsPage() {
                 fontStyle: "italic",
               }}
             >
-              Highest borrowing month: May 2025 (133 borrows)
+              {filteredTrends.length > 0
+                ? `${reportPeriod}: ${filteredTrends[0].total} borrows, ${filteredTrends[0].returnRate}% return rate`
+                : "Select a different period to view trends."}
             </p>
           </Card>
         )}
@@ -392,26 +558,29 @@ export default function ReportsPage() {
           <Card
             title="User Activity Breakdown"
             action={
-              <div style={{ position: "relative", width: 220 }}>
-                <Search
-                  size={18}
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--muted)",
-                    pointerEvents: "none",
-                  }}
-                />
-                <input
-                  className="input"
-                  type="search"
-                  placeholder="Search user..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  style={{ paddingLeft: 40 }}
-                />
+              <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                <div style={{ position: "relative", width: 220 }}>
+                  <Search
+                    size={18}
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "var(--muted)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                  <input
+                    className="input"
+                    type="search"
+                    placeholder="Search user..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    style={{ paddingLeft: 40 }}
+                  />
+                </div>
+                {exportMenu}
               </div>
             }
           >
@@ -428,17 +597,39 @@ export default function ReportsPage() {
           <Card
             title="Most Borrowed Books"
             action={
-              <Button variant="outline" size="sm">
-                <Filter size={16} />
-                Filter
-              </Button>
+              <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                {filterOpen && (
+                  <Select
+                    label="Category"
+                    options={CATEGORY_OPTIONS}
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={{ width: 180 }}
+                  />
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilterOpen((open) => !open)}
+                  aria-expanded={filterOpen}
+                >
+                  <Filter size={16} />
+                  {filterOpen ? "Hide Filter" : "Filter"}
+                </Button>
+                {categoryFilter !== "All Categories" && (
+                  <Button variant="ghost" size="sm" onClick={clearBookFilter}>
+                    Clear
+                  </Button>
+                )}
+                {exportMenu}
+              </div>
             }
           >
             <DataTable
               columns={BOOK_COLUMNS}
-              rows={BOOK_POPULARITY}
+              rows={filteredBooks}
               rowKey="id"
-              emptyMessage="No book popularity data available."
+              emptyMessage="No books match the selected category."
             />
             <p
               style={{
@@ -450,7 +641,9 @@ export default function ReportsPage() {
                 fontStyle: "italic",
               }}
             >
-              Most popular category: Engineering · 1 book(s) currently out of stock
+              {filteredBooks.length > 0
+                ? `Most popular category: ${topCategory} · ${outOfStockCount} book(s) currently out of stock`
+                : "Try clearing the category filter to see all books."}
             </p>
           </Card>
         )}

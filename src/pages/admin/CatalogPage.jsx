@@ -14,6 +14,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Button from "../../components/ui/Button.jsx";
 import Card from "../../components/ui/Card.jsx";
@@ -292,6 +293,13 @@ export default function AdminCatalogPage() {
   const [selectedBook, setSelectedBook] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
+  const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(() => setNotice(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     setPage(1);
@@ -400,6 +408,7 @@ export default function AdminCatalogPage() {
       setPage(Math.ceil(next.length / PAGE_SIZE));
       return next;
     });
+    setNotice(`"${newBook.title}" was added to the catalog.`);
     setShowAddModal(false);
     resetForm();
   };
@@ -411,6 +420,7 @@ export default function AdminCatalogPage() {
     setBooks((prev) =>
       prev.map((book) => (book.id === selectedBook.id ? updated : book)),
     );
+    setNotice(`"${updated.title}" was updated successfully.`);
     setShowEditModal(false);
     setSelectedBook(null);
     resetForm();
@@ -499,7 +509,7 @@ export default function AdminCatalogPage() {
         ),
       },
     ],
-    [],
+    [openEditModal, openViewModal],
   );
 
   const bookFormFields = (
@@ -595,6 +605,8 @@ export default function AdminCatalogPage() {
           Add New Book
         </Button>
       </header>
+
+      {notice && <AlertBanner tone="info" message={notice} />}
 
       <section className="grid-stats">
         {stats.map((stat) => (
