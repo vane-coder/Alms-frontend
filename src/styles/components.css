@@ -231,3 +231,17 @@
 @media (max-width: 520px) {
   .grid-stats { grid-template-columns: 1fr; }
 }
+
+/* ---------- Dashboard charts ---------- */
+.dashboard-chart-bars::before,
+.dashboard-chart-bars::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--border);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.dashboard-chart-bars::before { bottom: 50%; }
+.dashboard-chart-bars::after { bottom: 75%; }

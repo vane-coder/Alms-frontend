@@ -1,5 +1,6 @@
 // Admin — Borrow Records (full list).
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Download, Eye, Search } from "lucide-react";
 import AlertBanner from "../../components/ui/AlertBanner.jsx";
 import Button from "../../components/ui/Button.jsx";
@@ -220,9 +221,16 @@ function countByStatus(records, status) {
 }
 
 export default function BorrowRecordsPage() {
+  const location = useLocation();
+  const initialStatus =
+    location.state?.statusFilter &&
+    STATUS_OPTIONS.includes(location.state.statusFilter)
+      ? location.state.statusFilter
+      : "All Statuses";
+
   const [records, setRecords] = useState(ALL_BORROW_RECORDS);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All Statuses");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [page, setPage] = useState(1);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [notice, setNotice] = useState(null);
