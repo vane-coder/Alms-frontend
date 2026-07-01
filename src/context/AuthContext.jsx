@@ -13,9 +13,9 @@ const USER_KEY = "alms_user";
 
 // --- Mock users for development. Delete once real auth is wired. ---
 const MOCK_USERS = {
-  "student@knust.edu.gh":   { id: 1, name: "Kwame Nkrumah", role: ROLES.STUDENT,   email: "student@knust.edu.gh" },
-  "librarian@knust.edu.gh": { id: 2, name: "Ama Serwaa",    role: ROLES.LIBRARIAN, email: "librarian@knust.edu.gh" },
-  "admin@knust.edu.gh":     { id: 3, name: "Dr. Isaac Manu", role: ROLES.ADMIN,    email: "admin@knust.edu.gh" },
+  "student@knust.edu.gh":   { id: 1, name: "Kwame Nkrumah",  role: ROLES.STUDENT,   email: "student@knust.edu.gh" },
+  "librarian@knust.edu.gh": { id: 2, name: "Ama Serwaa",     role: ROLES.LIBRARIAN, email: "librarian@knust.edu.gh" },
+  "admin@knust.edu.gh":     { id: 3, name: "Dr. Isaac Manu", role: ROLES.ADMIN,     email: "admin@knust.edu.gh" },
 };
 
 export function AuthProvider({ children }) {
@@ -29,9 +29,20 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  async function login(email /* , password */) {
+  async function login(email, password) {
     // TODO(backend): replace with authService.login(email, password)
-    const found = MOCK_USERS[email] || MOCK_USERS["student@knust.edu.gh"];
+
+    // Normalize so casing / whitespace can't cause a wrong match.
+    const key = (email || "").trim().toLowerCase();
+    const found = MOCK_USERS[key];
+
+    // No silent fallback: an unknown email is a real error you can see.
+    if (!found) {
+      throw new Error(
+        "No account for that email. Use student@, librarian@ or admin@knust.edu.gh"
+      );
+    }
+
     const token = "mock-jwt-token";
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(found));

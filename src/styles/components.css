@@ -349,3 +349,10 @@
   .meta-grid { grid-template-columns: repeat(2, 1fr); }
   .form-grid { grid-template-columns: 1fr; }
 }
+/* ---------- Librarian toolbar (search + filters + action) ---------- */
+.toolbar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 18px; }
+.toolbar__search { flex: 2 1 260px; }
+.toolbar__filter { flex: 1 1 150px; }
+.actions-cell { display: inline-flex; gap: 14px; }
+.act-edit { background: none; border: none; color: var(--green-700); font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0; }
+.act-remove { background: none; border: none; color: var(--red-600); font-weight: 600; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 0; }
