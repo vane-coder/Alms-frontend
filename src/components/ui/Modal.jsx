@@ -11,7 +11,11 @@ export default function Modal({ title, onClose, children, footer }) {
           <button className="modal__close" aria-label="Close" onClick={onClose}><X size={20} /></button>
         </div>
         {children}
-        {footer && <div className="row row--between" style={{ marginTop: 18 }}>{footer}</div>}
+        {footer && (
+          <div className="row" style={{ marginTop: 18, justifyContent: "flex-end", gap: 8 }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
