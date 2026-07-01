@@ -1,23 +1,31 @@
-// AuthLayout — split screen: branding panel (left) + form card (right).
-// Used by login / forgot-password / reset-password (Screen 3).
+// AuthLayout — split screen: branding panel (left) + form card (right) + footer.
+// Matches Screen 3. Each auth page renders its form inside the card via <Outlet>.
 import { Outlet } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 
 export default function AuthLayout() {
+  const year = new Date().getFullYear();
   return (
-    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "1fr 1fr", background: "var(--cream)" }}>
-      <div style={{ display: "grid", placeItems: "center", padding: 40, background: "var(--cream-dark)" }}>
-        <div style={{ textAlign: "center" }}>
-          <BookOpen size={72} color="var(--green-700)" />
-          <h1 style={{ fontSize: 34, marginTop: 16 }}>KNUST Library</h1>
-          <p style={{ color: "var(--muted)", marginTop: 8 }}>Automated Library Management System</p>
+    <div className="auth">
+      <div className="auth__body">
+        <div className="auth__brand">
+          <div>
+            <span className="auth__logo"><BookOpen size={42} color="var(--green-700)" /></span>
+            <h1 className="auth__brand-title">KNUST Library</h1>
+            <p className="auth__brand-sub">Automated Library Management System</p>
+          </div>
+        </div>
+
+        <div className="auth__panel">
+          <div className="auth__card">
+            <Outlet />
+          </div>
         </div>
       </div>
-      <div style={{ display: "grid", placeItems: "center", padding: 40 }}>
-        <div style={{ width: "100%", maxWidth: 420 }}>
-          <Outlet />
-        </div>
-      </div>
+
+      <footer className="auth__footer">
+        KNUST Computer Science Department &copy; {year}
+      </footer>
     </div>
   );
 }
